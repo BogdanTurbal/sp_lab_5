@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3.js Tree Diagram</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script> 
+    <style>
+        .node circle {
+            fill: #fff;
+            stroke: steelblue;
+            stroke-width: 2px;
+        }
+        .node text {
+            font: 12px sans-serif;
+        }
+        .link {
+            fill: none;
+            stroke: #ccc;
+            stroke-width: 1.5px;
+        }
+    </style>
+</head>
+<body>
+    <svg width="2000" height="2000"></svg>
+
+    <script>
+        const treeData = {"name": "program", "children": [{"name": "headers", "children": [{"name": "#include<stdio.h>"}]}, {"name": "main", "children": [{"name": "statements", "children": [{"name": "declaration", "children": [{"name": "a"}, {"name": "NULL"}]}, {"name": "statements", "children": [{"name": "declaration", "children": [{"name": "b"}, {"name": "1"}]}, {"name": "statements", "children": [{"name": "declaration", "children": [{"name": "c"}, {"name": "2"}]}, {"name": "statements", "children": [{"name": "=", "children": [{"name": "b"}, {"name": "3023"}]}, {"name": "statements", "children": [{"name": "=", "children": [{"name": "c"}, {"name": "11"}]}, {"name": "statements", "children": [{"name": "=", "children": [{"name": "c"}, {"name": "0"}]}, {"name": "if-else", "children": [{"name": "if", "children": [{"name": "<", "children": [{"name": "a"}, {"name": "5"}]}, {"name": "for", "children": [{"name": "CONDITION", "children": [{"name": "declaration", "children": [{"name": "k"}, {"name": "0"}]}, {"name": "CONDITION", "children": [{"name": "<", "children": [{"name": "k"}, {"name": "10"}]}, {"name": "ITERATOR", "children": [{"name": "k"}, {"name": "++"}]}]}]}, {"name": "statements", "children": [{"name": "=", "children": [{"name": "b"}, {"name": "+", "children": [{"name": "a"}, {"name": "3"}]}]}, {"name": "for", "children": [{"name": "CONDITION", "children": [{"name": "declaration", "children": [{"name": "h"}, {"name": "0"}]}, {"name": "CONDITION", "children": [{"name": "<", "children": [{"name": "h"}, {"name": "20"}]}, {"name": "ITERATOR", "children": [{"name": "h"}, {"name": "++"}]}]}]}, {"name": "=", "children": [{"name": "b"}, {"name": "-", "children": [{"name": "c"}, {"name": "10"}]}]}]}]}]}]}, {"name": "else", "children": [{"name": "declaration", "children": [{"name": "idx"}, {"name": "1"}]}]}]}]}]}]}]}]}]}, {"name": "RETURN", "children": [{"name": "return"}, {"name": "1"}]}]}]};
+            const treeLayout = d3.tree()
+            .size([1500, 1000]);
+
+        const root = d3.hierarchy(treeData);
+
+        treeLayout(root);
+
+        const svg = d3.select("svg");
+        const g = svg.append("g")
+            .attr("transform", "translate(50,50)");
+
+        const link = g.selectAll(".link")
+            .data(root.links())
+            .enter().append("path")
+            .attr("class", "link")
+            .attr("d", d3.linkHorizontal()
+                .x(d => d.y)
+                .y(d => d.x));
+
+        const node = g.selectAll(".node")
+            .data(root.descendants())
+            .enter().append("g")
+            .attr("class", "node")
+            .attr("transform", d => `translate(${d.y},${d.x})`);
+
+        node.append("circle")
+            .attr("r", 5);
+
+        node.append("text")
+            .attr("dy", "0.31em")
+            .attr("x", d => d.children ? -6 : 6)
+            .attr("text-anchor", d => d.children ? "end" : "start")
+            .text(d => d.data.name);
+    </script>
+</body>
+</html>

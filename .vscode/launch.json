@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/bohdan.turbal/Desktop/sp_lab_5",
+      "program": "/Users/bohdan.turbal/Desktop/sp_lab_5/build/Debug/outDebug"
+    }
+  ]
+}
