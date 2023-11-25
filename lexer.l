@@ -1,6 +1,8 @@
 %{
     #include "y.tab.h"
     int countn=0;
+    int countc = 0; 
+
 %}
 %option yylineno
 
@@ -53,8 +55,8 @@ unary "++"|"--"
 \/\/.*                      { ; }
 \/\*(.*\n)*.*\*\/           { ; } 
 [ \t]*                      { ; }
-[\n]                        { countn++; }
-.	                        { return *yytext; }
+[\n]                        { countn++; countc = 0;}
+.	                        { countc++; return *yytext; }
 ["].*["]                    { strcpy(yylval.node_obj.name,(yytext)); return STR; }
 ['].[']                     { strcpy(yylval.node_obj.name,(yytext)); return CHARACTER; }
 

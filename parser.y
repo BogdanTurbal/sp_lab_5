@@ -11,7 +11,7 @@
     int yylex();
     int yywrap();
 
-	void addSymbolToTable(char *, char *, char *, int );
+	void addSymbolToTable(char *, char *, char *, int lineNmber, int );
 
 	void inorderTraversal(struct Node *);
     void validateDeclaration(char *);
@@ -26,13 +26,16 @@
 
 	void displaySyntaxTree(struct Node*);
 	void writeJSON(struct Node* , FILE* );
+	void clearLevel();
 
     struct dataType {
-        char * id_name;
-        char * data_type;
-        char * type;
-        int line_no;
-	} symbol_table[40];
+    char * id_name;
+    char * data_type;
+    char * type;
+    int line_no;
+    int scope_level; 
+} symbol_table[40];
+	int currentScopeLevel = 0;
 
     int symbolCount=0;
     int q;
@@ -92,7 +95,6 @@
 program: headers main '(' ')' '{' body return '}' { 
 	$2.nd = mkNode($6.nd, $7.nd, "main");
  	$$.nd = mkNode($1.nd, $2.nd, "program"); 
-	printf("Hell yeah!");
 
 	head = $$.nd;
 };
@@ -109,6 +111,7 @@ datatype: INT { setType(); }
 | VOID { setType(); }
 | FLOAT { setType(); }
 | CHAR { setType(); }
+| error { yyerror("Expected a data type (int, float, etc.)"); }
 ;
 
 
@@ -116,7 +119,7 @@ body: IF { addSymbol('K'); forLoopFlag = 0; } '(' condition ')' { sprintf(icg[ic
 	$$.nd = mkNode(mkNode($4.nd, $8.nd, $1.name), $11.nd, "if-else"); 
 	sprintf(icg[ic_idx++], "GOTO next\n");
 }
-| FOR { addSymbol('K'); forLoopFlag = 1; } '(' statement ';' condition ';' statement ')' '{' body '}' { 
+| FOR { addSymbol('K'); forLoopFlag = 1; currentScopeLevel++; } '(' statement ';' condition ';' statement ')' '{' body  { currentScopeLevel--; clearLevel();} '}' { 
 	$$.nd = mkNode(mkNode($4.nd, mkNode($6.nd, $8.nd, "CONDITION"), "CONDITION"), $11.nd, $1.name); 
 	sprintf(icg[ic_idx++], "JUMP to %s\n", $6.if_body);
 	sprintf(icg[ic_idx++], "\nLABEL %s:\n", $6.else_body);
@@ -239,6 +242,7 @@ statement: datatype ID { addSymbol('V'); } init {
 
 	}
 }
+| error ';'    { yyerror("Expected an expression before ';'."); }
 ;
 
 init: '=' value { $$.nd = $2.nd; sprintf($$.type, $2.type); strcpy($$.name, $2.name); }
@@ -318,6 +322,10 @@ return: RETURN { addSymbol('K'); } value ';' { verifyReturnType($3.name); $1.nd 
 
 %%
 
+void yyerror(const char *s) {
+    fprintf(stderr, "Error: %s at line %d, column %d\n", s, countn + 1, countc + 1);
+}
+
 int main() {
     yyparse();
 	printf("Lex analysis \n\n");
@@ -326,7 +334,8 @@ int main() {
 		printf("%s\t%s\t%s\t%d\t\n", symbol_table[i].id_name, symbol_table[i].data_type, symbol_table[i].type, symbol_table[i].line_no);
 	}
 	for(i=0;i<symbolCount;i++) {
-		free(symbol_table[i].id_name);free(symbol_table[i].type);
+		if(!strcmp(symbol_table[i].id_name, "")) free(symbol_table[i].id_name);
+		free(symbol_table[i].type);
 	}
 	printf("Syntax analysis");
 	displaySyntaxTree(head); 
@@ -341,14 +350,23 @@ int main() {
 	}
 }
 
-int findSymbol(char *type) {
+int findSymbol(char *name) {
     for (int i = symbolCount - 1; i >= 0; i--) {
-        if (strcmp(symbol_table[i].id_name, type) == 0) {
-            return -1;
+        if (strcmp(symbol_table[i].id_name, name) == 0 && symbol_table[i].scope_level <= currentScopeLevel) {
+            return -1; 
         }
     }
-    return 0;
+    return 0; 
 }
+
+void clearLevel() {
+    for (int i = symbolCount - 1; i >= 0; i--) {
+        if (symbol_table[i].scope_level > currentScopeLevel) {
+			strcpy(symbol_table[i].id_name, "");
+        }
+    }
+}
+
 
 
 void validateDeclaration(char *c) {
@@ -390,13 +408,15 @@ char *retrieveDataType(char *var){
 	}
 }
 
-void addSymbolToTable(char *name, char *dataType, char *symbolType, int lineNumber) {
+void addSymbolToTable(char *name, char *dataType, char *symbolType, int lineNumber, int scopeLevel) {
     symbol_table[symbolCount].id_name = strdup(name);
     symbol_table[symbolCount].data_type = strdup(dataType);
     symbol_table[symbolCount].line_no = lineNumber;
     symbol_table[symbolCount].type = strdup(symbolType);
+    symbol_table[symbolCount].scope_level = scopeLevel;
     symbolCount++;
 }
+
 
 
 void addSymbol(char c) {
@@ -419,7 +439,7 @@ void addSymbol(char c) {
                            (c == 'C') ? "Constant" : 
                            (c == 'F') ? "Function" : "Unknown";
 
-        addSymbolToTable(yytext, dataType, symbolType, countn);
+        addSymbolToTable(yytext, dataType, symbolType, countn, currentScopeLevel);
     } else if (c == 'V') {
         sprintf(errors[semanticErrors], "Line %d: Multiple declarations of \"%s\" not allowed!\n", countn + 1, yytext);
         semanticErrors++;
@@ -466,8 +486,3 @@ void writeJSON(struct Node* root, FILE* file) {
 void setType() {
 	strcpy(type, yytext);
 }
-
-void yyerror(const char* msg) {
-    fprintf(stderr, "%s\n", msg);
-}
-

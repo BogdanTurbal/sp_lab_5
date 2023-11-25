@@ -1,10 +1,11 @@
 #include<stdio.h>
 int main() {
     int num1=100;
-    int num2=23;
+    int num2=1;
     int tt;
 
-    float tt;
+    int num2=1;
+
     scanf("%d", &tt);
 
     tt = num1 + num2;
